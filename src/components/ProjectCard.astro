@@ -9,7 +9,20 @@ interface Props {
 const { project, imageSrc: imageOverride } = Astro.props;
 
 const techCategories = project.techCategories;
-const imageSrc = imageOverride ?? (project.image ? (project.image.startsWith('/') ? project.image : `/${project.image}`) : undefined);
+const image = 'image' in project ? (project.image as string) : undefined;
+const imageAlt = 'imageAlt' in project ? (project.imageAlt as string) : '';
+const imageSrc = imageOverride ?? (image ? (image.startsWith('/') ? image : `/${image}`) : undefined);
+
+// Accepts YouTube watch, youtu.be, or embed links and returns an embeddable URL.
+function toEmbedUrl(url: string): string {
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return url;
+}
+const videoSrc = 'video' in project && project.video ? toEmbedUrl(project.video as string) : undefined;
+const videoTitle = 'videoTitle' in project ? (project.videoTitle as string) : (project as FeaturedProject).title;
 ---
 
 <article class="scroll-stat panel-card group space-y-6">
@@ -20,11 +33,24 @@ const imageSrc = imageOverride ?? (project.image ? (project.image.startsWith('/'
     {project.period && <p class="mt-1 font-mono text-sm text-accent">{project.period}</p>}
   </header>
 
-  {imageSrc && (
+  {videoSrc ? (
+    <div class="w-full max-w-3xl overflow-hidden rounded-xl" style="aspect-ratio: 16 / 9;">
+      <iframe
+        src={videoSrc}
+        title={videoTitle}
+        class="h-full w-full"
+        style="border: 0;"
+        loading="lazy"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+    </div>
+  ) : imageSrc && (
     <div class="w-full max-w-3xl overflow-hidden rounded-xl">
       <img
         src={imageSrc}
-        alt={project.imageAlt ?? ''}
+        alt={imageAlt}
         class="w-full h-56 object-cover"
         loading="lazy"
         decoding="async"
